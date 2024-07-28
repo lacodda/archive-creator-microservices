@@ -1,0 +1,36 @@
+syntax = "proto3";
+package task;
+
+service TaskService {
+    rpc EnqueueTask (EnqueueTaskRequest) returns (TaskIdResponse);
+    rpc GetTaskProgress (TaskProgressRequest) returns (TaskProgressResponse);
+    rpc StopTask (StopTaskRequest) returns (StopTaskResponse);
+}
+
+message EnqueueTaskRequest {
+    string archive_name = 1;
+    repeated bytes files = 2;
+}
+
+message TaskIdResponse {
+    string task_id = 1;
+}
+
+message TaskProgressRequest {
+    string task_id = 1;
+}
+
+message TaskProgressResponse {
+    string task_id = 1;
+    bool done = 2;
+    double progress = 3;
+    string error = 4;
+}
+
+message StopTaskRequest {
+    string task_id = 1;
+}
+
+message StopTaskResponse {
+    string status = 1;
+}
