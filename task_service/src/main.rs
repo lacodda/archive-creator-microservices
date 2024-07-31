@@ -4,7 +4,7 @@ mod models;
 mod utils;
 
 use tonic::transport::Server;
-use api::task_service::task_service_server::TaskServiceServer;
+use api::task::task_service_server::TaskServiceServer;
 use api::TaskServiceImpl;
 
 #[tokio::main]

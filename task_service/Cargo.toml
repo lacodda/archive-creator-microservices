@@ -2,19 +2,24 @@
 name = "task_service"
 version = "0.0.1"
 edition = "2021"
+build = "build.rs"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-tonic = "0.4"
-prost = "0.8"
-uuid = "1.0"
+tonic = "0.12"
+prost = "0.13"
 serde = { version = "1.0", features = ["derive"] }
 chrono = "0.4"
 rand = "0.8"
-zip = "0.5"
+uuid = {version="1.0", features = [
+    "v4",                # Lets you generate random UUIDs
+    "fast-rng",          # Use a faster (but still sufficiently random) RNG
+    "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
+]}
+zip = {version="2", features = ["aes-crypto"] }
 
 [build-dependencies]
-tonic-build = "0.4"
+tonic-build = "0.12"
 
 [[bin]]
 name = "task_service"
