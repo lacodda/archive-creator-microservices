@@ -1,3 +1,6 @@
+[rest_api]
+address = "localhost:9188"
+
 [task_service]
 address = "http://[::1]:50051"
 

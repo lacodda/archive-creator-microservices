@@ -13,6 +13,11 @@ struct TaskServiceConfig {
     address: String,
 }
 
+#[derive(Deserialize)]
+struct RestApiConfig {
+    address: String,
+}
+
 #[derive(Clone)]
 struct AppState {
     task_client: Arc<Mutex<TaskServiceClient<Channel>>>,
@@ -27,6 +32,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .add_source(Environment::with_prefix("APP"))
         .build()
         .map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
+    let rest_api_config: RestApiConfig = settings.get("rest_api").map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
     let task_service_config: TaskServiceConfig = settings.get("task_service").map_err(|e| io::Error::new(io::ErrorKind::Other, e.to_string()))?;
 
     // Initialize gRPC clients
@@ -37,7 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         task_client: Arc::new(Mutex::new(task_client)),
     };
 
-    HttpServer::new(move || {
+    let server = HttpServer::new(move || {
         App::new()
             .app_data(web::Data::new(app_state.clone()))
             .wrap(
@@ -49,8 +55,11 @@ async fn main() -> Result<(), Box<dyn Error>> {
             )
             .configure(api::init_routes)
     })
-    .bind("127.0.0.1:9188")?
-    .run()
-    .await
-    .map_err(|e| Box::new(e) as Box<dyn Error>)
+    .bind(&rest_api_config.address)?;
+
+    println!("Server running at http://{}", &rest_api_config.address);
+
+    server.run().await?;
+
+    Ok(())
 }
