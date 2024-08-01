@@ -1,17 +1,18 @@
 use crate::models::task::Task;
 use crate::services::task_service::create_zip_with_password;
+use crate::utils::zip::generate_random_password;
+use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
+use task::task_service_server::TaskService;
+use task::{
+    AllTasksRequest, AllTasksResponse, EnqueueTaskRequest, StopTaskRequest, StopTaskResponse, TaskIdResponse, TaskProgressRequest, TaskProgressResponse,
+};
 use tokio::sync::Mutex;
 use tokio::time::sleep;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
-
-use crate::utils::zip::generate_random_password;
-use std::collections::HashMap;
-use task::task_service_server::TaskService;
-use task::{EnqueueTaskRequest, StopTaskRequest, StopTaskResponse, TaskIdResponse, TaskProgressRequest, TaskProgressResponse};
 
 pub mod task {
     tonic::include_proto!("task");
@@ -82,6 +83,7 @@ impl TaskService for TaskServiceImpl {
 
     async fn get_task_progress(&self, request: Request<TaskProgressRequest>) -> Result<Response<TaskProgressResponse>, Status> {
         let task_id = request.into_inner().task_id;
+        println!("task_id {}", &task_id);
         let tasks = self.tasks.lock().await;
         if let Some(task) = tasks.get(&task_id) {
             Ok(Response::new(TaskProgressResponse {
@@ -93,6 +95,21 @@ impl TaskService for TaskServiceImpl {
         } else {
             Err(Status::not_found("Task not found"))
         }
+    }
+
+    async fn get_all_tasks(&self, _request: Request<AllTasksRequest>) -> Result<Response<AllTasksResponse>, Status> {
+        let tasks = self.tasks.lock().await;
+        let tasks_list: Vec<TaskProgressResponse> = tasks
+            .values()
+            .map(|task| TaskProgressResponse {
+                task_id: task.taskId.clone(),
+                done: task.done,
+                progress: task.progress,
+                error: task.error.clone().unwrap_or_default(),
+            })
+            .collect();
+
+        Ok(Response::new(AllTasksResponse { tasks: tasks_list }))
     }
 
     async fn stop_task(&self, request: Request<StopTaskRequest>) -> Result<Response<StopTaskResponse>, Status> {
@@ -111,6 +128,6 @@ impl TaskService for TaskServiceImpl {
 
 impl TaskServiceImpl {
     fn get_file_path(task_id: &str) -> String {
-        format!("C:/Tmp/{}.zip", task_id)
+        format!("C:/Projects/.tmp/{}.zip", task_id)
     }
 }

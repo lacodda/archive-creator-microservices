@@ -1,10 +1,11 @@
+use super::task::task_service_client::TaskServiceClient;
 use crate::{
-    api::task::{TaskProgressRequest, TaskProgressResponse as ProtoTaskProgressResponse},
+    api::task::{AllTasksRequest, AllTasksResponse, TaskProgressRequest, TaskProgressResponse},
     AppState,
 };
 use actix_web::{get, web, Error, HttpResponse};
-use serde::{Deserialize, Serialize};
-use tonic::Request;
+use serde::Deserialize;
+use tonic::{transport::Channel, Request, Status};
 
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
@@ -12,41 +13,31 @@ pub struct GetProgressQuery {
     taskId: Option<String>,
 }
 
-#[derive(Serialize)]
-struct TaskProgressResponse {
-    task_id: String,
-    done: bool,
-    progress: f64,
-    error: String,
+async fn fetch_task_progress(task_id: String, client: &mut TaskServiceClient<Channel>) -> Result<TaskProgressResponse, Status> {
+    let request = Request::new(TaskProgressRequest { task_id });
+    let response = client.get_task_progress(request).await?;
+    Ok(response.into_inner())
 }
 
-impl From<ProtoTaskProgressResponse> for TaskProgressResponse {
-    fn from(item: ProtoTaskProgressResponse) -> Self {
-        TaskProgressResponse {
-            task_id: item.task_id,
-            done: item.done,
-            progress: item.progress,
-            error: item.error,
-        }
-    }
+async fn fetch_all_tasks(client: &mut TaskServiceClient<Channel>) -> Result<AllTasksResponse, Status> {
+    let request = Request::new(AllTasksRequest {});
+    let response = client.get_all_tasks(request).await?;
+    Ok(response.into_inner())
 }
 
 #[get("/progress")]
 pub async fn get_progress(query: web::Query<GetProgressQuery>, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
-    if let Some(task_id) = &query.taskId {
-        let request = Request::new(TaskProgressRequest { task_id: task_id.clone() });
-        let mut client = data.task_client.lock().await;
-        let response = client.get_task_progress(request).await;
+    let mut client = data.task_client.lock().await;
 
-        match response {
-            Ok(res) => {
-                let proto_item = res.into_inner();
-                let item: TaskProgressResponse = proto_item.into();
-                Ok(HttpResponse::Ok().json(item))
-            }
-            Err(_) => Ok(HttpResponse::InternalServerError().body("Internal Server Error")),
+    if let Some(task_id) = &query.taskId {
+        match fetch_task_progress(task_id.clone(), &mut client).await {
+            Ok(progress_response) => Ok(HttpResponse::Ok().json(progress_response)),
+            Err(e) => Ok(HttpResponse::InternalServerError().body(format!("Failed to fetch task progress: {}", e))),
         }
     } else {
-        Ok(HttpResponse::BadRequest().body("taskId query parameter is required"))
+        match fetch_all_tasks(&mut client).await {
+            Ok(all_tasks_response) => Ok(HttpResponse::Ok().json(all_tasks_response.tasks)),
+            Err(e) => Ok(HttpResponse::InternalServerError().body(format!("Failed to fetch all tasks: {}", e))),
+        }
     }
 }

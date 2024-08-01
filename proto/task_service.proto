@@ -1,41 +1,54 @@
 syntax = "proto3";
 package task;
 
+import "google/protobuf/descriptor.proto";
+
 service TaskService {
     rpc EnqueueTask (EnqueueTaskRequest) returns (TaskIdResponse);
     rpc GetTaskProgress (TaskProgressRequest) returns (TaskProgressResponse);
+    rpc GetAllTasks (AllTasksRequest) returns (AllTasksResponse);
     rpc StopTask (StopTaskRequest) returns (StopTaskResponse);
 }
 
+extend google.protobuf.FieldOptions {
+  string serde = 50000;
+}
+
 message EnqueueTaskRequest {
-    string archive_name = 1;
-    repeated FileInfo files = 2;
+  string archive_name = 1 [(serde) = "rename = \"archive_name\""];
+  repeated FileInfo files = 2 [(serde) = "rename = \"files\""];
 }
 
 message FileInfo {
-    string filename = 1;
-    bytes content = 2;
+  string filename = 1 [(serde) = "rename = \"filename\""];
+  bytes content = 2 [(serde) = "rename = \"content\""];
 }
 
 message TaskIdResponse {
-    string task_id = 1;
+  string task_id = 1 [(serde) = "rename = \"task_id\""];
 }
 
 message TaskProgressRequest {
-    string task_id = 1;
+  string task_id = 1 [(serde) = "rename = \"task_id\""];
 }
 
 message TaskProgressResponse {
-    string task_id = 1;
-    bool done = 2;
-    double progress = 3;
-    string error = 4;
+  string task_id = 1 [(serde) = "rename = \"task_id\""];
+  bool done = 2 [(serde) = "rename = \"done\""];
+  double progress = 3 [(serde) = "rename = \"progress\""];
+  string error = 4 [(serde) = "rename = \"error\""];
+}
+
+message AllTasksRequest {}
+
+message AllTasksResponse {
+  repeated TaskProgressResponse tasks = 1 [(serde) = "rename = \"tasks\""];
 }
 
 message StopTaskRequest {
-    string task_id = 1;
+  string task_id = 1 [(serde) = "rename = \"task_id\""];
 }
 
 message StopTaskResponse {
-    string status = 1;
+  string status = 1 [(serde) = "rename = \"status\""];
 }
