@@ -2,6 +2,7 @@
 name = "rest_api"
 version = "0.0.1"
 edition = "2021"
+build = "build.rs"
 
 [dependencies]
 actix-web = "4.0"
@@ -12,12 +13,13 @@ serde = { version = "1.0", features = ["derive"] }
 uuid = "1.0"
 chrono = "0.4"
 tokio = { version = "1", features = ["full"] }
-actix-cors = "0.6"
-tonic = "0.4"
-prost = "0.8"
+actix-cors = "0.7"
+tonic = "0.12"
+prost = "0.13"
+config = "0.14"
 
 [build-dependencies]
-tonic-build = "0.4"
+tonic-build = "0.12"
 
 [[bin]]
 name = "rest_api"

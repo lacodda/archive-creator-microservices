@@ -1,0 +1,5 @@
+[task_service]
+address = "http://[::1]:50051"
+
+[notification_service]
+address = "http://[::1]:50052"

@@ -3,9 +3,7 @@ use std::fs::File;
 use std::io::Read;
 
 #[get("/archive")]
-pub async fn get_archive(
-    task_id: web::Query<String>,
-) -> Result<HttpResponse, Error> {
+pub async fn get_archive(task_id: web::Query<String>) -> Result<HttpResponse, Error> {
     let file_path = format!("/tmp/{}.zip", task_id);
 
     let mut buffer = Vec::new();

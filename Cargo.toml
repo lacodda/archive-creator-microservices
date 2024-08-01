@@ -1,3 +1,3 @@
 [workspace]
-members = ["task_service"]
+members = ["task_service", "rest_api"]
 resolver = "2"

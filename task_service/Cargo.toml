@@ -17,6 +17,7 @@ uuid = {version="1.0", features = [
     "macro-diagnostics", # Enable better diagnostics for compile-time UUIDs
 ]}
 zip = {version="2", features = ["aes-crypto"] }
+config = "0.14"
 
 [build-dependencies]
 tonic-build = "0.12"
