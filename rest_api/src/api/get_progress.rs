@@ -1,6 +1,7 @@
 use super::task::task_service_client::TaskServiceClient;
 use crate::{
     api::task::{AllTasksRequest, AllTasksResponse, TaskProgressRequest, TaskProgressResponse},
+    error::ErrorResponse,
     AppState,
 };
 use actix_web::{get, web, Error, HttpResponse};
@@ -32,12 +33,12 @@ pub async fn get_progress(query: web::Query<GetProgressQuery>, data: web::Data<A
     if let Some(task_id) = &query.taskId {
         match fetch_task_progress(task_id.clone(), &mut client).await {
             Ok(progress_response) => Ok(HttpResponse::Ok().json(progress_response)),
-            Err(e) => Ok(HttpResponse::InternalServerError().body(format!("Failed to fetch task progress: {}", e))),
+            Err(e) => Ok(HttpResponse::InternalServerError().json(ErrorResponse::from(e))),
         }
     } else {
         match fetch_all_tasks(&mut client).await {
             Ok(all_tasks_response) => Ok(HttpResponse::Ok().json(all_tasks_response.tasks)),
-            Err(e) => Ok(HttpResponse::InternalServerError().body(format!("Failed to fetch all tasks: {}", e))),
+            Err(e) => Ok(HttpResponse::InternalServerError().json(ErrorResponse::from(e))),
         }
     }
 }

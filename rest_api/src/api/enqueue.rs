@@ -1,23 +1,12 @@
 use crate::{
-    api::task::{EnqueueTaskRequest, FileInfo, TaskIdResponse as ProtoTaskIdResponse},
+    api::task::{EnqueueTaskRequest, FileInfo},
+    error::ErrorResponse,
     AppState,
 };
 use actix_multipart::Multipart;
 use actix_web::{post, web, Error, HttpResponse};
 use futures::StreamExt;
-use serde::Serialize;
 use tonic::Request;
-
-#[derive(Serialize)]
-struct TaskIdResponse {
-    task_id: String,
-}
-
-impl From<ProtoTaskIdResponse> for TaskIdResponse {
-    fn from(item: ProtoTaskIdResponse) -> Self {
-        TaskIdResponse { task_id: item.task_id }
-    }
-}
 
 #[post("/enqueue")]
 pub async fn enqueue_archive(mut payload: Multipart, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
@@ -25,7 +14,12 @@ pub async fn enqueue_archive(mut payload: Multipart, data: web::Data<AppState>) 
     let mut files = Vec::new();
 
     while let Some(item) = payload.next().await {
-        let mut field = item?;
+        let mut field = match item {
+            Ok(f) => f,
+            Err(_) => {
+                return Ok(HttpResponse::InternalServerError().json(ErrorResponse::new("InternalServerError", "Failed to process multipart field")));
+            }
+        };
         let content_disposition = field.content_disposition();
         let name = content_disposition.get_name().unwrap();
 
@@ -48,14 +42,8 @@ pub async fn enqueue_archive(mut payload: Multipart, data: web::Data<AppState>) 
     let request = Request::new(EnqueueTaskRequest { archive_name, files });
 
     let mut client = data.task_client.lock().await;
-    let response = client.enqueue_task(request).await;
-
-    match response {
-        Ok(res) => {
-            let proto_item = res.into_inner();
-            let item: TaskIdResponse = proto_item.into();
-            Ok(HttpResponse::Ok().json(item))
-        }
-        Err(_) => Ok(HttpResponse::InternalServerError().body("Internal Server Error")),
+    match client.enqueue_task(request).await {
+        Ok(response) => Ok(HttpResponse::Ok().json(response.into_inner())),
+        Err(e) => Ok(HttpResponse::InternalServerError().json(ErrorResponse::from(e))),
     }
 }

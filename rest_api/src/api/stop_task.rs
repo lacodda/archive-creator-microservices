@@ -1,21 +1,11 @@
 use crate::{
-    api::task::{StopTaskRequest, StopTaskResponse as ProtoStopTaskResponse},
+    api::task::{StopTaskRequest, StopTaskResponse},
+    error::ErrorResponse,
     AppState,
 };
 use actix_web::{get, web, Error, HttpResponse};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use tonic::Request;
-
-#[derive(Serialize)]
-struct StopTaskResponse {
-    status: String,
-}
-
-impl From<ProtoStopTaskResponse> for StopTaskResponse {
-    fn from(item: ProtoStopTaskResponse) -> Self {
-        StopTaskResponse { status: item.status }
-    }
-}
 
 #[derive(Deserialize)]
 #[allow(non_snake_case)]
@@ -35,6 +25,6 @@ pub async fn stop_task(query: web::Query<StopTaskQuery>, data: web::Data<AppStat
             let item: StopTaskResponse = proto_item.into();
             Ok(HttpResponse::Ok().json(item))
         }
-        Err(_) => Ok(HttpResponse::InternalServerError().body("Internal Server Error")),
+        Err(e) => Ok(HttpResponse::InternalServerError().json(ErrorResponse::from(e))),
     }
 }

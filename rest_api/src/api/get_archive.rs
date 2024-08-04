@@ -1,17 +1,27 @@
+use crate::{
+    api::task::{ArchiveResponse, GetArchiveRequest},
+    error::ErrorResponse,
+    AppState,
+};
 use actix_web::{get, web, Error, HttpResponse};
-use std::fs::File;
-use std::io::Read;
+use serde::Deserialize;
+use tonic::Request;
+
+#[derive(Deserialize)]
+#[allow(non_snake_case)]
+pub struct GetArchiveQuery {
+    taskId: String,
+}
 
 #[get("/archive")]
-pub async fn get_archive(task_id: web::Query<String>) -> Result<HttpResponse, Error> {
-    let file_path = format!("/tmp/{}.zip", task_id);
-
-    let mut buffer = Vec::new();
-    let mut file = File::open(file_path)?;
-    file.read_to_end(&mut buffer)?;
-
-    Ok(HttpResponse::Ok()
-        .content_type("application/x-zip-compressed")
-        .insert_header(("Content-Disposition", format!("attachment; filename=\"{}.zip\"", task_id)))
-        .body(buffer))
+pub async fn get_archive(query: web::Query<GetArchiveQuery>, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
+    let request = Request::new(GetArchiveRequest { task_id: query.taskId.clone() });
+    let mut client = data.task_client.lock().await;
+    match client.get_archive(request).await {
+        Ok(response) => {
+            let archive_response: ArchiveResponse = response.into_inner();
+            Ok(HttpResponse::Ok().content_type("application/zip").body(archive_response.archive))
+        }
+        Err(e) => Ok(HttpResponse::InternalServerError().json(ErrorResponse::from(e))),
+    }
 }
