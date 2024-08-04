@@ -2,12 +2,15 @@ use crate::models::task::Task;
 use crate::services::task_service::create_zip_with_password;
 use crate::utils::zip::generate_random_password;
 use std::collections::HashMap;
+use std::fs::File;
+use std::io::Read;
 use std::sync::atomic::Ordering;
 use std::sync::Arc;
 use std::time::Duration;
 use task::task_service_server::TaskService;
 use task::{
-    AllTasksRequest, AllTasksResponse, EnqueueTaskRequest, StopTaskRequest, StopTaskResponse, TaskIdResponse, TaskProgressRequest, TaskProgressResponse,
+    AllTasksRequest, AllTasksResponse, ArchiveResponse, EnqueueTaskRequest, GetArchiveRequest, StopTaskRequest, StopTaskResponse, TaskIdResponse,
+    TaskProgressRequest, TaskProgressResponse,
 };
 use tokio::sync::Mutex;
 use tokio::time::sleep;
@@ -137,5 +140,15 @@ impl TaskService for TaskServiceImpl {
         } else {
             Err(Status::not_found("Task not found"))
         }
+    }
+
+    async fn get_archive(&self, request: Request<GetArchiveRequest>) -> Result<Response<ArchiveResponse>, Status> {
+        let task_id = request.into_inner().task_id;
+        let file_path = self.get_file_path(&task_id);
+        let mut file = File::open(&file_path).map_err(|e| Status::not_found(format!("File not found: {:?}", e)))?;
+        let mut buffer = Vec::new();
+        file.read_to_end(&mut buffer)
+            .map_err(|e| Status::internal(format!("Failed to read file: {:?}", e)))?;
+        Ok(Response::new(ArchiveResponse { archive: buffer }))
     }
 }

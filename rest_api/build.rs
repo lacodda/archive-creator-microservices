@@ -8,6 +8,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .type_attribute("task.AllTasksResponse", "#[derive(serde::Serialize, serde::Deserialize)]")
         .type_attribute("task.StopTaskRequest", "#[derive(serde::Serialize, serde::Deserialize)]")
         .type_attribute("task.StopTaskResponse", "#[derive(serde::Serialize, serde::Deserialize)]")
+        .type_attribute("task.GetArchiveRequest", "#[derive(serde::Serialize, serde::Deserialize)]")
+        .type_attribute("task.ArchiveResponse", "#[derive(serde::Serialize, serde::Deserialize)]")
         .compile(&["../proto/task_service.proto"], &["../proto"])?;
     Ok(())
 }

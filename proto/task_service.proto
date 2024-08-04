@@ -8,6 +8,7 @@ service TaskService {
     rpc GetTaskProgress (TaskProgressRequest) returns (TaskProgressResponse);
     rpc GetAllTasks (AllTasksRequest) returns (AllTasksResponse);
     rpc StopTask (StopTaskRequest) returns (StopTaskResponse);
+    rpc GetArchive (GetArchiveRequest) returns (ArchiveResponse);
 }
 
 extend google.protobuf.FieldOptions {
@@ -51,4 +52,12 @@ message StopTaskRequest {
 
 message StopTaskResponse {
   string status = 1 [(serde) = "rename = \"status\""];
+}
+
+message GetArchiveRequest {
+  string task_id = 1 [(serde) = "rename = \"task_id\""];
+}
+
+message ArchiveResponse {
+  bytes archive = 1 [(serde) = "rename = \"archive\""];
 }
