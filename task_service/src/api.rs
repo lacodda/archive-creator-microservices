@@ -25,13 +25,17 @@ pub mod task {
 pub struct TaskServiceImpl {
     tasks: Arc<Mutex<HashMap<String, Task>>>,
     archive_path: String,
+    simulate_slow_work: bool,
+    slow_work_duration: u64,
 }
 
 impl TaskServiceImpl {
-    pub fn new(archive_path: &str) -> Self {
+    pub fn new(archive_path: &str, simulate_slow_work: bool, slow_work_duration: u64) -> Self {
         Self {
             tasks: Arc::new(Mutex::new(HashMap::new())),
             archive_path: archive_path.to_owned(),
+            simulate_slow_work,
+            slow_work_duration,
         }
     }
 
@@ -58,22 +62,27 @@ impl TaskService for TaskServiceImpl {
         // Start the archive creation process in a new async task
         let task_id_clone = task_id.clone();
         let tasks_clone = self.tasks.clone();
+        let simulate_slow_work = self.simulate_slow_work;
+        let slow_work_duration = self.slow_work_duration;
+
         tokio::spawn(async move {
-            let total_steps = 10;
-            let step_duration = Duration::from_secs(6); // 10 steps, each 6 seconds = 60 seconds
-            for step in 1..=total_steps {
-                sleep(step_duration).await;
-                if stop_signal.load(Ordering::Relaxed) {
+            if simulate_slow_work {
+                let total_steps = 10;
+                let step_duration = Duration::from_millis(slow_work_duration / total_steps);
+                for step in 1..=total_steps {
+                    sleep(step_duration).await;
+                    if stop_signal.load(Ordering::Relaxed) {
+                        let mut tasks = tasks_clone.lock().await;
+                        tasks.remove(&task_id_clone);
+                        return;
+                    }
+
+                    let progress = (step as f64 / total_steps as f64) * 100.0;
                     let mut tasks = tasks_clone.lock().await;
-                    tasks.remove(&task_id_clone);
-                    return;
-                }
 
-                let progress = (step as f64 / total_steps as f64) * 100.0;
-
-                let mut tasks = tasks_clone.lock().await;
-                if let Some(task) = tasks.get_mut(&task_id_clone) {
-                    task.progress = progress;
+                    if let Some(task) = tasks.get_mut(&task_id_clone) {
+                        task.progress = progress;
+                    }
                 }
             }
 

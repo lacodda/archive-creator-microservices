@@ -7,6 +7,8 @@ protocol="http"
 address = "[::1]:50051"
 max_message_size = "10mb"
 archive_path = "C:/Projects/.tmp"
+simulate_slow_work = false
+slow_work_duration = 60000
 
 [notification_service]
 protocol="http"

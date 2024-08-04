@@ -16,6 +16,8 @@ struct TaskServiceConfig {
     address: String,
     max_message_size: String,
     archive_path: String,
+    simulate_slow_work: bool,
+    slow_work_duration: u64,
 }
 
 #[tokio::main]
@@ -31,7 +33,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let addr = task_service_config.address.parse()?;
     // Parse max message size
     let max_message_size = parse_size(&task_service_config.max_message_size)?;
-    let task_service = TaskServiceImpl::new(&task_service_config.archive_path);
+    let task_service = TaskServiceImpl::new(
+        &task_service_config.archive_path,
+        task_service_config.simulate_slow_work,
+        task_service_config.slow_work_duration,
+    );
 
     Server::builder()
         .add_service(
