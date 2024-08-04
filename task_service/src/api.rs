@@ -100,7 +100,6 @@ impl TaskService for TaskServiceImpl {
 
     async fn get_task_progress(&self, request: Request<TaskProgressRequest>) -> Result<Response<TaskProgressResponse>, Status> {
         let task_id = request.into_inner().task_id;
-        println!("task_id {}", &task_id);
         let tasks = self.tasks.lock().await;
         if let Some(task) = tasks.get(&task_id) {
             Ok(Response::new(TaskProgressResponse {
@@ -108,6 +107,9 @@ impl TaskService for TaskServiceImpl {
                 done: task.done,
                 progress: task.progress,
                 error: task.error.clone().unwrap_or_default(),
+                timestamp: task.timestamp.clone(),
+                password: task.password.clone(),
+                archive_name: task.archive_name.clone(),
             }))
         } else {
             Err(Status::not_found("Task not found"))
@@ -123,6 +125,9 @@ impl TaskService for TaskServiceImpl {
                 done: task.done,
                 progress: task.progress,
                 error: task.error.clone().unwrap_or_default(),
+                timestamp: task.timestamp.clone(),
+                password: task.password.clone(),
+                archive_name: task.archive_name.clone(),
             })
             .collect();
 
@@ -144,11 +149,19 @@ impl TaskService for TaskServiceImpl {
 
     async fn get_archive(&self, request: Request<GetArchiveRequest>) -> Result<Response<ArchiveResponse>, Status> {
         let task_id = request.into_inner().task_id;
-        let file_path = self.get_file_path(&task_id);
-        let mut file = File::open(&file_path).map_err(|e| Status::not_found(format!("File not found: {:?}", e)))?;
-        let mut buffer = Vec::new();
-        file.read_to_end(&mut buffer)
-            .map_err(|e| Status::internal(format!("Failed to read file: {:?}", e)))?;
-        Ok(Response::new(ArchiveResponse { archive: buffer }))
+        let tasks = self.tasks.lock().await;
+        if let Some(task) = tasks.get(&task_id) {
+            let file_path = self.get_file_path(&task_id);
+            let mut file: File = File::open(&file_path).map_err(|e| Status::not_found(format!("File not found: {:?}", e)))?;
+            let mut buffer = Vec::new();
+            file.read_to_end(&mut buffer)
+                .map_err(|e| Status::internal(format!("Failed to read file: {:?}", e)))?;
+            Ok(Response::new(ArchiveResponse {
+                archive: buffer,
+                archive_name: task.archive_name.to_owned(),
+            }))
+        } else {
+            Err(Status::not_found("Task not found"))
+        }
     }
 }

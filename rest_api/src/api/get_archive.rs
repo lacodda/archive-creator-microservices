@@ -20,7 +20,13 @@ pub async fn get_archive(query: web::Query<GetArchiveQuery>, data: web::Data<App
     match client.get_archive(request).await {
         Ok(response) => {
             let archive_response: ArchiveResponse = response.into_inner();
-            Ok(HttpResponse::Ok().content_type("application/zip").body(archive_response.archive))
+            Ok(HttpResponse::Ok()
+            .content_type("application/x-zip-compressed")
+            .insert_header((
+                "Content-Disposition",
+                format!("attachment; filename=\"{}\".zip", archive_response.archive_name),
+            ))
+            .body(archive_response.archive))
         }
         Err(e) => Ok(HttpResponse::InternalServerError().json(ErrorResponse::from(e))),
     }

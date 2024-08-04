@@ -38,6 +38,9 @@ message TaskProgressResponse {
   bool done = 2 [(serde) = "rename = \"done\""];
   double progress = 3 [(serde) = "rename = \"progress\""];
   string error = 4 [(serde) = "rename = \"error\""];
+  string timestamp = 5 [(serde) = "rename = \"timestamp\""];
+  string password = 6 [(serde) = "rename = \"password\""];
+  string archive_name = 7 [(serde) = "rename = \"archive_name\""];
 }
 
 message AllTasksRequest {}
@@ -60,4 +63,5 @@ message GetArchiveRequest {
 
 message ArchiveResponse {
   bytes archive = 1 [(serde) = "rename = \"archive\""];
+  string archive_name = 2 [(serde) = "rename = \"archive_name\""];
 }
