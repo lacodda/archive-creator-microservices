@@ -19,6 +19,7 @@ uuid = { version = "1.0", features = [
 ] }
 zip = { version = "2", features = ["aes-crypto"] }
 config = "0.14"
+common = { path = "../common" }
 
 [build-dependencies]
 tonic-build = "0.12"

@@ -1,8 +1,13 @@
 [rest_api]
+protocol="http"
 address = "localhost:9188"
 
 [task_service]
-address = "http://[::1]:50051"
+protocol="http"
+address = "[::1]:50051"
+max_message_size = "10mb"
+archive_path = "C:/Projects/.tmp"
 
 [notification_service]
+protocol="http"
 address = "http://[::1]:50052"

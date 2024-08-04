@@ -21,6 +21,20 @@ pub mod task {
 #[derive(Default)]
 pub struct TaskServiceImpl {
     tasks: Arc<Mutex<HashMap<String, Task>>>,
+    archive_path: String,
+}
+
+impl TaskServiceImpl {
+    pub fn new(archive_path: &str) -> Self {
+        Self {
+            tasks: Arc::new(Mutex::new(HashMap::new())),
+            archive_path: archive_path.to_owned(),
+        }
+    }
+
+    pub fn get_file_path(&self, task_id: &str) -> String {
+        format!("{}/{}.zip", self.archive_path, task_id)
+    }
 }
 
 #[tonic::async_trait]
@@ -28,7 +42,7 @@ impl TaskService for TaskServiceImpl {
     async fn enqueue_task(&self, request: Request<EnqueueTaskRequest>) -> Result<Response<TaskIdResponse>, Status> {
         let req = request.into_inner();
         let task_id = Uuid::new_v4().to_string();
-        let file_path = Self::get_file_path(&task_id);
+        let file_path = self.get_file_path(&task_id);
         let password = generate_random_password();
         let archive_name = req.archive_name;
         let files = req.files;
@@ -123,11 +137,5 @@ impl TaskService for TaskServiceImpl {
         } else {
             Err(Status::not_found("Task not found"))
         }
-    }
-}
-
-impl TaskServiceImpl {
-    fn get_file_path(task_id: &str) -> String {
-        format!("C:/Projects/.tmp/{}.zip", task_id)
     }
 }
