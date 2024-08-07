@@ -3,40 +3,29 @@ use crate::{
     error::ErrorResponse,
     AppState,
 };
-use actix_multipart::Multipart;
+use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{post, web, Error, HttpResponse};
-use futures::StreamExt;
+use std::io::Read;
 use tonic::Request;
 
+#[derive(Debug, MultipartForm)]
+pub struct ArchiveForm {
+    archive_name: Text<String>,
+    files: Vec<TempFile>,
+}
+
 #[post("/enqueue")]
-pub async fn enqueue_archive(mut payload: Multipart, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
-    let mut archive_name = String::new();
+pub async fn enqueue_archive(MultipartForm(form): MultipartForm<ArchiveForm>, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
+    let archive_name = form.archive_name.clone();
     let mut files = Vec::new();
 
-    while let Some(item) = payload.next().await {
-        let mut field = match item {
-            Ok(f) => f,
-            Err(_) => {
-                return Ok(HttpResponse::InternalServerError().json(ErrorResponse::new("InternalServerError", "Failed to process multipart field")));
-            }
-        };
-        let content_disposition = field.content_disposition();
-        let name = content_disposition.get_name().unwrap();
-
-        if name == "archive_name" {
-            while let Some(chunk) = field.next().await {
-                let data = chunk?;
-                archive_name.push_str(std::str::from_utf8(&data).unwrap());
-            }
-        } else if name == "files" {
-            let filename = content_disposition.get_filename().unwrap().to_string();
-            let mut buffer = Vec::new();
-            while let Some(chunk) = field.next().await {
-                let data = chunk?;
-                buffer.extend_from_slice(&data);
-            }
-            files.push(FileInfo { filename, content: buffer });
+    for file in form.files.iter() {
+        let filename = file.file_name.clone().unwrap_or_else(|| "unknown".to_string());
+        let mut buffer = Vec::new();
+        if let Err(_e) = std::fs::File::open(&file.file).and_then(|mut f| f.read_to_end(&mut buffer)) {
+            return Ok(HttpResponse::InternalServerError().json(ErrorResponse::new("InternalServerError", &format!("Failed to read file {}", filename))));
         }
+        files.push(FileInfo { filename, content: buffer });
     }
 
     let request = Request::new(EnqueueTaskRequest { archive_name, files });
