@@ -5,6 +5,8 @@ use serde::Deserialize;
 use std::{error::Error, io, sync::Arc};
 use tokio::sync::Mutex;
 use tonic::transport::Channel;
+use utoipa::OpenApi;
+use utoipa_swagger_ui::SwaggerUi;
 
 mod api;
 mod error;
@@ -26,8 +28,19 @@ struct AppState {
     task_client: Arc<Mutex<TaskServiceClient<Channel>>>,
 }
 
-#[actix_rt::main]
+#[actix_web::main]
 async fn main() -> Result<(), Box<dyn Error>> {
+    #[derive(OpenApi)]
+    #[openapi(
+        nest(
+            (path = "/api/v1", api = api::Api)
+        ),
+        tags(
+            (name = "todo", description = "Todo management endpoints.")
+        ),
+    )]
+    struct ApiDoc;
+
     let builder = Config::builder();
     let settings = builder
         .add_source(File::with_name("config"))
@@ -44,6 +57,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let app_state = AppState {
         task_client: Arc::new(Mutex::new(task_client)),
     };
+    let openapi = ApiDoc::openapi();
 
     let server = HttpServer::new(move || {
         App::new()
@@ -55,7 +69,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
                     .allow_any_header()
                     .max_age(3600),
             )
-            .configure(api::init_routes)
+            .service(web::scope("/api/v1").configure(api::init_routes))
+            .service(SwaggerUi::new("/swagger/{_:.*}").url("/api/docs/openapi.json", openapi.clone()))
     })
     .bind(&rest_api_config.address)?;
 

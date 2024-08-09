@@ -7,13 +7,21 @@ use actix_multipart::form::{tempfile::TempFile, text::Text, MultipartForm};
 use actix_web::{post, web, Error, HttpResponse};
 use std::io::Read;
 use tonic::Request;
+use utoipa::ToSchema;
 
-#[derive(Debug, MultipartForm)]
+#[derive(Debug, MultipartForm, ToSchema)]
 pub struct ArchiveForm {
+    #[schema(value_type = String)]
     archive_name: Text<String>,
+    #[schema(value_type = Vec<String>, format = Binary)]
     files: Vec<TempFile>,
 }
 
+#[utoipa::path(
+    post,
+    request_body(content = ArchiveForm, content_type = "multipart/form-data"),
+    responses((status = 200))
+)]
 #[post("/enqueue")]
 pub async fn enqueue_archive(MultipartForm(form): MultipartForm<ArchiveForm>, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
     let archive_name = form.archive_name.clone();
