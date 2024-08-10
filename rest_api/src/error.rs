@@ -1,8 +1,12 @@
 use serde::Serialize;
+use utoipa::ToSchema;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(description = "Error response returned by the API when a request fails")]
 pub struct ErrorResponse {
+    /// Error code representing the type of error
     code: String,
+    /// Human-readable error message
     message: String,
 }
 

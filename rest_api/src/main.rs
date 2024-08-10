@@ -32,11 +32,40 @@ struct AppState {
 async fn main() -> Result<(), Box<dyn Error>> {
     #[derive(OpenApi)]
     #[openapi(
-        nest(
-            (path = "/api/v1", api = api::Api)
+        info(
+            title = "Archive Creator API",
+            description = "API for creating password-protected archives from uploaded files. \
+            This service supports asynchronous processing and provides endpoints for enqueuing tasks, \
+            checking progress, retrieving archives, and stopping tasks.",
+            version = "0.0.1",
+            contact(
+                name = "API Support",
+                url = "https://www.example.com/support",
+                email = "support@example.com"
+            ),
+            license(
+                name = "MIT",
+                url = "https://opensource.org/licenses/MIT"
+            )
         ),
+        
+        paths(
+            api::enqueue::enqueue_archive,
+            api::get_archive::get_archive,
+            api::get_progress::get_progress,
+            api::stop_task::stop_task,
+        ),
+        components(schemas(
+            api::enqueue::ArchiveForm,
+            api::get_progress::TaskProgressResponse,
+            api::get_progress::SingleTaskResponse,
+            api::get_progress::AllTasksResponse,
+            api::stop_task::StopTaskResponse,
+            api::enqueue::TaskIdResponse,
+            error::ErrorResponse
+        )),
         tags(
-            (name = "todo", description = "Todo management endpoints.")
+            (name = "archive", description = "Archive management endpoints"),
         ),
     )]
     struct ApiDoc;

@@ -11,16 +11,42 @@ use utoipa::ToSchema;
 
 #[derive(Debug, MultipartForm, ToSchema)]
 pub struct ArchiveForm {
+    /// The name of the archive to be created
     #[schema(value_type = String)]
     archive_name: Text<String>,
+    /// List of files to be included in the archive
     #[schema(value_type = Vec<String>, format = Binary)]
     files: Vec<TempFile>,
 }
 
+#[derive(ToSchema)]
+#[allow(unused)]
+#[schema(description = "Response containing the ID of the enqueued task")]
+pub struct TaskIdResponse {
+    /// The unique identifier of the task
+    task_id: String,
+}
+
+/// Enqueue an archive creation task.
+///
+/// This endpoint enqueues a task to create an archive from the provided files.
+/// It accepts a multipart form containing the archive name and the files.
+///
+/// Returns a task ID which can be used to check the progress of the task.
+///
+/// Example of a successful response:
+/// ```json
+/// {
+///     "task_id": "123e4567-e89b-12d3-a456-426614174000"
+/// }
+/// ```
 #[utoipa::path(
-    post,
-    request_body(content = ArchiveForm, content_type = "multipart/form-data"),
-    responses((status = 200))
+    path = "/api/v1/enqueue",
+    request_body(content = ArchiveForm, content_type = "multipart/form-data", description = "Form data containing the archive name and files"),
+    responses(
+        (status = 200, description = "Task enqueued successfully", body = TaskIdResponse),
+        (status = 500, description = "Failed to enqueue task", body = ErrorResponse)
+    )
 )]
 #[post("/enqueue")]
 pub async fn enqueue_archive(MultipartForm(form): MultipartForm<ArchiveForm>, data: web::Data<AppState>) -> Result<HttpResponse, Error> {
